@@ -1,0 +1,423 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="format-detection" content="telephone=no">
+<title>现场拍摄</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif; }
+body { position: fixed; inset: 0; }
+
+.cam-page { position: fixed; inset: 0; display: flex; flex-direction: column; background: #000; z-index: 10; }
+.cam-top { position: absolute; top: 0; left: 0; right: 0; height: calc(48px + env(safe-area-inset-top, 0px)); padding-top: env(safe-area-inset-top, 0px); display: flex; align-items: center; justify-content: space-between; padding-left: 12px; padding-right: 12px; z-index: 5; background: linear-gradient(to bottom, rgba(0,0,0,0.55), rgba(0,0,0,0)); }
+.cam-top .cam-title { font-size: 16px; font-weight: 500; color: #fff; }
+.cam-icon-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.35); border-radius: 50%; color: #fff; cursor: pointer; border: none; }
+.cam-icon-btn:active { background: rgba(0,0,0,0.6); }
+.cam-icon-btn svg { width: 22px; height: 22px; fill: #fff; }
+
+.cam-stage { position: relative; flex: 1; min-height: 0; overflow: hidden; background: #000; }
+.cam-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; background: #000; }
+.cam-canvas { display: none; }
+.cam-overlay { position: absolute; inset: 0; pointer-events: none; }
+.cam-grid { position: absolute; inset: 0; background:
+  linear-gradient(to right, transparent calc(33.33% - 1px), rgba(255,255,255,0.18) calc(33.33% - 1px), rgba(255,255,255,0.18) calc(33.33%), transparent calc(33.33%)),
+  linear-gradient(to right, transparent calc(66.66% - 1px), rgba(255,255,255,0.18) calc(66.66% - 1px), rgba(255,255,255,0.18) calc(66.66%), transparent calc(66.66%)),
+  linear-gradient(to bottom, transparent calc(33.33% - 1px), rgba(255,255,255,0.18) calc(33.33% - 1px), rgba(255,255,255,0.18) calc(33.33%), transparent calc(33.33%)),
+  linear-gradient(to bottom, transparent calc(66.66% - 1px), rgba(255,255,255,0.18) calc(66.66% - 1px), rgba(255,255,255,0.18) calc(66.66%), transparent calc(66.66%));
+  opacity: 0.5; }
+.cam-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+.cam-flash.show { animation: flash 0.35s ease-out; }
+@keyframes flash { 0% { opacity: 0; } 20% { opacity: 0.9; } 100% { opacity: 0; } }
+
+.cam-bottom { position: relative; height: 140px; background: #0a0a0a; display: flex; align-items: center; justify-content: space-around; padding: 0 16px env(safe-area-inset-bottom, 0); z-index: 5; }
+.cam-bottom .side { width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; }
+.cam-bottom .switch-btn { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff; }
+.cam-bottom .switch-btn:active { background: rgba(255,255,255,0.2); }
+.cam-bottom .switch-btn svg { width: 22px; height: 22px; fill: #fff; }
+.cam-bottom .last-photo { width: 44px; height: 44px; border-radius: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); overflow: hidden; cursor: pointer; display: none; }
+.cam-bottom .last-photo.has { display: block; }
+.cam-bottom .last-photo img { width: 100%; height: 100%; object-fit: cover; }
+
+.cam-shutter { width: 78px; height: 78px; border-radius: 50%; background: #fff; border: 4px solid #fff; box-shadow: 0 0 0 4px rgba(255,255,255,0.25), 0 0 0 6px #0a0a0a; cursor: pointer; position: relative; transition: transform 0.1s; }
+.cam-shutter:active { transform: scale(0.92); }
+.cam-shutter:disabled { opacity: 0.5; cursor: not-allowed; }
+.cam-shutter::after { content: ''; position: absolute; inset: 4px; border-radius: 50%; background: #fff; }
+
+/* 错误/加载态 */
+.cam-mask { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.78); z-index: 20; padding: 0 32px; text-align: center; color: #fff; }
+.cam-mask[hidden] { display: none; }
+.cam-mask .icon { font-size: 56px; margin-bottom: 16px; }
+.cam-mask .msg { font-size: 15px; line-height: 1.6; margin-bottom: 8px; }
+.cam-mask .sub { font-size: 13px; color: #aaa; line-height: 1.6; margin-bottom: 24px; }
+.cam-mask .actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.cam-mask .btn { padding: 10px 22px; border-radius: 22px; background: #1faa8a; color: #fff; border: none; font-size: 14px; cursor: pointer; min-width: 100px; }
+.cam-mask .btn.alt { background: rgba(255,255,255,0.15); }
+.cam-mask .btn:active { opacity: 0.8; }
+
+.cam-spinner { width: 44px; height: 44px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #1faa8a; border-radius: 50%; animation: spin 0.9s linear infinite; margin-bottom: 16px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 顶部提示 */
+.cam-tip { position: absolute; top: calc(56px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.55); color: #fff; padding: 6px 14px; border-radius: 14px; font-size: 12px; z-index: 6; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+.cam-tip.show { opacity: 1; }
+
+/* 预览确认层 */
+.cam-preview { position: absolute; inset: 0; background: #000; z-index: 30; display: none; flex-direction: column; }
+.cam-preview.show { display: flex; animation: fadeIn 0.25s ease; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.cam-preview img { flex: 1; min-height: 0; width: 100%; object-fit: contain; background: #000; }
+.cam-preview-bar { height: 100px; background: #0a0a0a; display: flex; align-items: center; justify-content: space-around; padding: 0 16px env(safe-area-inset-bottom, 0); }
+.cam-preview-bar .pv-btn { min-width: 100px; padding: 12px 0; border-radius: 24px; font-size: 15px; border: none; cursor: pointer; }
+.cam-preview-bar .pv-retake { background: rgba(255,255,255,0.15); color: #fff; }
+.cam-preview-bar .pv-confirm { background: #1faa8a; color: #fff; }
+.cam-preview-bar .pv-retake:active, .cam-preview-bar .pv-confirm:active { opacity: 0.8; }
+</style>
+</head>
+<body>
+<div class="cam-page" id="camPage">
+  <div class="cam-top">
+    <button class="cam-icon-btn" id="btnClose" aria-label="关闭">
+      <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+    </button>
+    <div class="cam-title">现场拍摄</div>
+    <button class="cam-icon-btn" id="btnFlash" aria-label="闪光灯" hidden>
+      <svg viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l3-8z"/></svg>
+    </button>
+  </div>
+
+  <div class="cam-stage" id="camStage">
+    <video id="video" class="cam-video" playsinline autoplay muted></video>
+    <div class="cam-overlay">
+      <div class="cam-grid"></div>
+    </div>
+    <div class="cam-flash" id="flash"></div>
+    <div class="cam-tip" id="tip"></div>
+  </div>
+
+  <div class="cam-bottom">
+    <div class="side">
+      <div class="last-photo" id="lastPhoto"><img id="lastPhotoImg" alt=""></div>
+    </div>
+    <button class="cam-shutter" id="btnShutter" aria-label="拍摄"></button>
+    <div class="side">
+      <button class="switch-btn" id="btnSwitch" aria-label="切换摄像头">
+        <svg viewBox="0 0 24 24"><path d="M20 4h-3.17L15 2H9L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 11.2V13H9v2.2L5.8 12 9 8.8V11h6V8.8l3.2 3.2-3.2 3.2z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <canvas id="canvas" class="cam-canvas"></canvas>
+
+  <!-- 加载/错误/权限遮罩 -->
+  <div class="cam-mask" id="mask">
+    <div class="cam-spinner" id="spin"></div>
+    <div class="msg" id="msg">正在启动摄像头…</div>
+    <div class="sub" id="sub"></div>
+    <div class="actions" id="actions" hidden>
+      <button class="btn" id="btnRetry" hidden>重新尝试</button>
+      <button class="btn alt" id="btnFallback" hidden>从相册选择</button>
+      <button class="btn alt" id="btnBack">返回</button>
+    </div>
+  </div>
+
+  <!-- 拍照确认层 -->
+  <div class="cam-preview" id="preview">
+    <img id="previewImg" alt="">
+    <div class="cam-preview-bar">
+      <button class="pv-btn pv-retake" id="btnRetake">重拍</button>
+      <button class="pv-btn pv-confirm" id="btnConfirm">使用照片</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fallbackFile" accept="image/*" style="display:none">
+
+<script>
+(function () {
+  'use strict';
+
+  const video    = document.getElementById('video');
+  const canvas   = document.getElementById('canvas');
+  const shutter  = document.getElementById('btnShutter');
+  const switchBtn= document.getElementById('btnSwitch');
+  const closeBtn = document.getElementById('btnClose');
+  const backBtn  = document.getElementById('btnBack');
+  const retryBtn = document.getElementById('btnRetry');
+  const fallbackBtn = document.getElementById('btnFallback');
+  const fallbackFile = document.getElementById('fallbackFile');
+
+  const mask     = document.getElementById('mask');
+  const spin     = document.getElementById('spin');
+  const msgEl    = document.getElementById('msg');
+  const subEl    = document.getElementById('sub');
+  const actions  = document.getElementById('actions');
+
+  const tip      = document.getElementById('tip');
+  const flash    = document.getElementById('flash');
+  const lastPhoto= document.getElementById('lastPhoto');
+  const lastImg  = document.getElementById('lastPhotoImg');
+
+  const preview  = document.getElementById('preview');
+  const previewImg = document.getElementById('previewImg');
+  const btnRetake  = document.getElementById('btnRetake');
+  const btnConfirm = document.getElementById('btnConfirm');
+
+  let stream = null;
+  let facingMode = 'environment'; // environment = 后置, user = 前置
+  let capturedBlob = null;
+  let capturedUrl  = null;
+  let busy = false;
+  let tipTimer = null;
+
+  // ===== 工具 =====
+  function showMask(msg, sub) {
+    mask.hidden = false;
+    spin.style.display = 'block';
+    msgEl.textContent = msg || '';
+    subEl.textContent = sub || '';
+    actions.hidden = true;
+  }
+  function showError(title, sub, opts) {
+    opts = opts || {};
+    mask.hidden = false;
+    spin.style.display = 'none';
+    msgEl.textContent = title;
+    subEl.textContent = sub || '';
+    actions.hidden = false;
+    retryBtn.hidden = !opts.retry;
+    fallbackBtn.hidden = !opts.fallback;
+  }
+  function hideMask() { mask.hidden = true; }
+
+  function showTip(text, ms) {
+    tip.textContent = text;
+    tip.classList.add('show');
+    clearTimeout(tipTimer);
+    tipTimer = setTimeout(() => tip.classList.remove('show'), ms || 1500);
+  }
+
+  // 浏览器能力检测
+  function checkSupport() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      return { ok: false, reason: 'unsupported' };
+    }
+    // HTTPS 检测（localhost 例外）
+    const isLocal = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+    if (location.protocol !== 'https:' && !isLocal) {
+      return { ok: false, reason: 'insecure' };
+    }
+    return { ok: true };
+  }
+
+  // ===== 启动摄像头 =====
+  async function startCamera() {
+    const sup = checkSupport();
+    if (!sup.ok) {
+      if (sup.reason === 'unsupported') {
+        showError('当前浏览器不支持摄像头调用', '请使用最新版 Chrome / Safari / Edge，或直接"从相册选择"', { fallback: true, retry: false });
+      } else if (sup.reason === 'insecure') {
+        showError('需要 HTTPS 安全连接', '摄像头 API 仅在 HTTPS 下可用，请联系管理员配置证书', { fallback: true, retry: false });
+      }
+      return;
+    }
+
+    showMask('正在启动摄像头…', '请在弹出的权限框中选择"允许"');
+
+    // 关闭旧的
+    stopStream();
+
+    // constraints：先尝试指定 facingMode，失败回退到宽松
+    const baseConstraints = {
+      audio: false,
+      video: {
+        facingMode: { ideal: facingMode },
+        width:  { ideal: 1920 },
+        height: { ideal: 1080 }
+      }
+    };
+
+    try {
+      stream = await navigator.mediaDevices.getUserMedia(baseConstraints);
+    } catch (e1) {
+      // 第二次尝试，不指定 facingMode
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
+      } catch (e2) {
+        e2 = e2 || e1;
+        handleGetUserMediaError(e2);
+        return;
+      }
+    }
+
+    video.srcObject = stream;
+    try { await video.play(); } catch (_) {}
+    hideMask();
+    shutter.disabled = false;
+  }
+
+  function handleGetUserMediaError(err) {
+    console.error('getUserMedia error:', err);
+    const name = err && err.name;
+    if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
+      showError('摄像头权限被拒绝', '请点击地址栏的小图标，重新授予摄像头权限后重试', { retry: true, fallback: true });
+    } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError' || name === 'OverconstrainedError') {
+      showError('未检测到可用摄像头', '请确认设备已连接摄像头，或改用"从相册选择"', { retry: false, fallback: true });
+    } else if (name === 'NotReadableError' || name === 'TrackStartError') {
+      showError('摄像头被其他程序占用', '请关闭其他正在使用摄像头的应用后重试', { retry: true, fallback: true });
+    } else if (name === 'AbortError') {
+      showError('启动被中断', '请重试', { retry: true, fallback: true });
+    } else {
+      showError('摄像头启动失败', (err && err.message) || '未知错误', { retry: true, fallback: true });
+    }
+  }
+
+  function stopStream() {
+    if (stream) {
+      stream.getTracks().forEach(t => { try { t.stop(); } catch (_) {} });
+      stream = null;
+    }
+    if (capturedUrl) { URL.revokeObjectURL(capturedUrl); capturedUrl = null; }
+    video.srcObject = null;
+  }
+
+  // ===== 拍照 =====
+  function capture() {
+    if (busy || !stream) return;
+    busy = true;
+    shutter.disabled = true;
+    flash.classList.remove('show');
+    void flash.offsetWidth;
+    flash.classList.add('show');
+
+    const w = video.videoWidth, h = video.videoHeight;
+    if (!w || !h) {
+      busy = false; shutter.disabled = false;
+      showTip('摄像头尚未就绪，请稍候');
+      return;
+    }
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    try { ctx.drawImage(video, 0, 0, w, h); } catch (e) {
+      busy = false; shutter.disabled = false;
+      showTip('拍照失败：' + (e.message || '未知错误'));
+      return;
+    }
+
+    // 转 blob（jpeg 0.92 压缩，iOS 大图）
+    canvas.toBlob(blob => {
+      busy = false; shutter.disabled = false;
+      if (!blob) { showTip('生成图片失败'); return; }
+      if (capturedUrl) URL.revokeObjectURL(capturedUrl);
+      capturedBlob = blob;
+      capturedUrl = URL.createObjectURL(blob);
+      previewImg.src = capturedUrl;
+      preview.classList.add('show');
+    }, 'image/jpeg', 0.92);
+  }
+
+  // ===== 上传 =====
+  async function uploadAndReturn() {
+    if (!capturedBlob) return;
+    busy = true;
+    btnConfirm.disabled = true;
+    btnRetake.disabled = true;
+    btnConfirm.textContent = '上传中…';
+    try {
+      const fd = new FormData();
+      const filename = 'camera_' + Date.now() + '.jpg';
+      fd.append('file', capturedBlob, filename);
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const json = await res.json().catch(() => ({ code: 500, message: '返回非 JSON' }));
+      if (json.code !== 0) throw new Error(json.message || '上传失败');
+
+      // 写入 sessionStorage，让 apply.html 读取
+      try {
+        const data = json.data;
+        sessionStorage.setItem('camera_captured', JSON.stringify({
+          id: data.id,
+          url: data.url,
+          fileName: data.fileName,
+          size: data.size
+        }));
+      } catch (_) {}
+
+      stopStream();
+      // 返回来源页
+      const ret = (new URLSearchParams(location.search)).get('return') || 'apply.html';
+      location.replace(ret);
+    } catch (e) {
+      btnConfirm.disabled = false;
+      btnRetake.disabled = false;
+      btnConfirm.textContent = '使用照片';
+      showTip('上传失败：' + e.message);
+    } finally {
+      busy = false;
+    }
+  }
+
+  function retake() {
+    capturedBlob = null;
+    if (capturedUrl) { URL.revokeObjectURL(capturedUrl); capturedUrl = null; }
+    preview.classList.remove('show');
+  }
+
+  // ===== 切换摄像头 =====
+  async function switchCamera() {
+    if (busy) return;
+    facingMode = (facingMode === 'environment') ? 'user' : 'environment';
+    switchBtn.disabled = true;
+    try { await startCamera(); }
+    finally { switchBtn.disabled = false; }
+  }
+
+  // ===== 相册回退 =====
+  function fallbackToAlbum() {
+    fallbackFile.click();
+  }
+  fallbackFile.addEventListener('change', async () => {
+    const f = fallbackFile.files && fallbackFile.files[0];
+    fallbackFile.value = '';
+    if (!f) return;
+    capturedBlob = f;
+    await uploadAndReturn();
+  });
+
+  // ===== 事件绑定 =====
+  shutter.addEventListener('click', capture);
+  switchBtn.addEventListener('click', switchCamera);
+  closeBtn.addEventListener('click', () => {
+    stopStream();
+    if (history.length > 1) history.back();
+    else location.replace('apply.html');
+  });
+  backBtn.addEventListener('click', () => {
+    stopStream();
+    if (history.length > 1) history.back();
+    else location.replace('apply.html');
+  });
+  retryBtn.addEventListener('click', () => startCamera());
+  fallbackBtn.addEventListener('click', fallbackToAlbum);
+  btnRetake.addEventListener('click', retake);
+  btnConfirm.addEventListener('click', uploadAndReturn);
+
+  // 离开页面时释放
+  window.addEventListener('pagehide', stopStream);
+  window.addEventListener('beforeunload', stopStream);
+
+  // 防止 iOS 双击放大
+  let lastTouch = 0;
+  document.addEventListener('touchend', e => {
+    const now = Date.now();
+    if (now - lastTouch < 300) e.preventDefault();
+    lastTouch = now;
+  }, { passive: false });
+
+  // 启动
+  shutter.disabled = true;
+  startCamera();
+})();
+</script>
+</body>
+</html>

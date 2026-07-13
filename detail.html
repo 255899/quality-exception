@@ -1,0 +1,57 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>异常单详情</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="app">
+  <div class="page-header">
+    <a class="back" href="javascript:history.back()">‹</a>
+    <div class="title">异常单详情</div>
+    <div></div>
+  </div>
+  <div class="body detail">
+    <div class="card">
+      <div class="field">
+        <label>异常单编号</label>
+        <div style="font-size:18px;font-weight:600;color:#1f7be5" id="code">--</div>
+        <div style="margin-top:6px" id="status"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="kv"><div class="k">现场实施者</div><div class="v" id="implementer">-</div></div>
+      <div class="kv"><div class="k">发生时间</div><div class="v" id="occurredAt">-</div></div>
+      <div class="kv"><div class="k">报告者</div><div class="v" id="reporter">-</div></div>
+      <div class="kv"><div class="k">异常点</div><div class="v" id="exceptionPoint">-</div></div>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <label>异常描述</label>
+        <div class="detail-desc" id="description">-</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <label>发现动机</label>
+        <div class="detail-desc" id="discoveryReason">-</div>
+      </div>
+    </div>
+
+    <div class="section-title">流转记录</div>
+    <div class="card" id="flowBox"></div>
+  </div>
+</div>
+
+<script src="js/common.js"></script>
+<script>
+requireLogin('detail.html?id=' + (new URLSearchParams(location.search).get('id') || ''));
+</script>
+<script src="js/detail.js"></script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>品质异常处理</title>
+<link rel="stylesheet" href="css/app.css">
+<style>
+.user-bar { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; color: #1f2937; background: linear-gradient(180deg, #f0f7ff 0%, #dbeafe 100%); border-bottom: 1px solid #bfdbfe; }
+.user-bar .who { font-size: 13px; opacity: 0.95; }
+.user-bar .who b { margin-right: 6px; }
+.user-bar .btn-logout { background: #1f7be5; border: 1px solid #1d6ec7; color: #fff; padding: 5px 12px; border-radius: 14px; font-size: 12px; cursor: pointer; }
+.user-bar .btn-logout:active { background: #1d6ec7; }
+</style>
+</head>
+<body>
+<div class="app menu-page">
+  <div class="brand">
+    <h1>品质异常处理</h1>
+  </div>
+
+  <div class="user-bar">
+    <div class="who">当前用户：<b id="userName">--</b><span id="userRole"></span></div>
+    <button class="btn-logout" id="btnLogout">退出登录</button>
+  </div>
+
+  <div class="menu-list" id="menuList">
+    <a class="menu-btn c1" data-allow="apply" href="apply.html">加工现场班长异常申请</a>
+    <a class="menu-btn c2" data-allow="qc-handle" href="qc-handle.html">加工现场品管异常处理</a>
+    <a class="menu-btn c3" data-allow="shift-confirm" href="shift-confirm.html">恢复生产首件确认(现场班长)</a>
+    <a class="menu-btn c4" data-allow="qc-confirm" href="qc-confirm.html">恢复生产首件确认(现场品管)</a>
+    <a class="menu-btn c5" data-allow="leader-confirm" href="leader-confirm.html">加工课组长确认</a>
+    <a class="menu-btn c6" data-allow="chief-confirm" href="chief-confirm.html">加工课课长确认</a>
+    <a class="menu-btn c7" data-allow="quality-confirm" href="quality-confirm.html">品质课课长确认</a>
+    <a class="menu-btn c-admin" data-allow="admin" href="list.html">异常单管理 / 统计</a>
+  </div>
+</div>
+
+<script src="js/common.js"></script>
+<script>
+// 角色 → 可访问模块（严格隔离：每个角色仅访问其职责范围内的功能）
+const ACCESS_MATRIX = {
+  // 现场班长：仅限自身职责范围（申请 + 现场班长首件确认），不含其他身份权限
+  SHIFT_LEADER_SUPER: { name: '现场班长', allow: new Set(['apply','shift-confirm']) },
+  // 班长：仅现场相关
+  SHIFT_LEADER:       { name: '班长',     allow: new Set(['apply','shift-confirm']) },
+  // 现场品管：仅品管相关
+  QC:                 { name: '现场品管', allow: new Set(['qc-handle','qc-confirm']) },
+  // 组长：仅组长确认
+  SECTION_LEADER:     { name: '组长',     allow: new Set(['leader-confirm']) },
+  // 课长：仅课长确认
+  SECTION_CHIEF:      { name: '课长',     allow: new Set(['chief-confirm']) },
+  // 品质部长：品质课长确认 + 管理后台
+  QUALITY_CHIEF:      { name: '品质部长', allow: new Set(['quality-confirm','admin']) }
+};
+
+const ROLE_RETURN_DEFAULT = {
+  SHIFT_LEADER_SUPER: 'apply.html',
+  SHIFT_LEADER: 'shift-confirm.html',
+  QC: 'qc-handle.html',
+  SECTION_LEADER: 'leader-confirm.html',
+  SECTION_CHIEF: 'chief-confirm.html',
+  QUALITY_CHIEF: 'quality-confirm.html'
+};
+
+document.getElementById('btnLogout').addEventListener('click', async () => {
+  try { await request('/api/auth/logout', { method: 'POST' }); } catch (_) {}
+  logoutLocal();
+});
+
+(async function init() {
+  // 未登录 → 跳登录
+  if (!getToken()) { location.replace('login.html?return=' + encodeURIComponent(location.href)); return; }
+  let me;
+  try { me = await request('/api/auth/me'); } catch (e) { location.replace('login.html'); return; }
+  setCurrentUser(me);
+
+  const mat = ACCESS_MATRIX[me.role];
+  document.getElementById('userName').textContent = me.realName;
+  document.getElementById('userRole').textContent = '（' + (mat ? mat.name : me.role) + '）';
+
+  // 过滤菜单
+  document.querySelectorAll('#menuList [data-allow]').forEach(a => {
+    const k = a.dataset.allow;
+    if (!mat || !mat.allow.has(k)) a.style.display = 'none';
+  });
+})();
+</script>
+</body>
+</html>

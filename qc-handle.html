@@ -1,0 +1,34 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>加工现场品管异常处理</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="app">
+  <div class="page-header">
+    <a class="back" href="index.html">‹</a>
+    <div class="title">加工现场品管异常处理</div>
+  </div>
+  <div class="body">
+    <div id="listContainer"></div>
+  </div>
+</div>
+
+<script src="js/common.js"></script>
+<script src="js/page-guard.js"></script>
+<script>
+requireRole('qc-handle');
+</script>
+<script src="js/process-list.js"></script>
+<script>
+window.FLOW_CONFIG = {
+  step: 'QC_HANDLE',
+  filterStatus: 'APPLIED',
+  actionLabel: '处理'
+};
+</script>
+</body>
+</html>
