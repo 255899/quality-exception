@@ -328,7 +328,7 @@ body { position: fixed; inset: 0; }
       const fd = new FormData();
       const filename = 'camera_' + Date.now() + '.jpg';
       fd.append('file', capturedBlob, filename);
-      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const res = await fetch(API + '/api/upload', { method: 'POST', body: fd });
       const json = await res.json().catch(() => ({ code: 500, message: '返回非 JSON' }));
       if (json.code !== 0) throw new Error(json.message || '上传失败');
 
