@@ -20,20 +20,13 @@
     return u;
   }
 
-  // 异步校验并跳转
-  window.requireRole = async function (moduleKey) {
+  window.requireRole = function (moduleKey) {
     const allowed = PAGE_ACCESS[moduleKey];
-    if (!allowed) return; // 未配置则放行
-    const local = ensureLocalAuth();
-    if (!local) return; // 已跳转
-
-    // 调一次 /me 拿最新角色
-    let me;
-    try { me = await request('/api/auth/me'); } catch (e) { location.replace('login.html'); return; }
-    setCurrentUser(me);
+    if (!allowed) return;
+    const me = ensureLocalAuth();
+    if (!me) return;
 
     if (!allowed.has(me.role)) {
-      // 隐藏页面内容，提示
       const root = document.querySelector('.app') || document.body;
       try { root.style.display = 'none'; } catch (_) {}
       const overlay = document.createElement('div');
