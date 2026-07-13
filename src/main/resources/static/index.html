@@ -68,18 +68,15 @@ document.getElementById('btnLogout').addEventListener('click', async () => {
   logoutLocal();
 });
 
-(async function init() {
-  // 未登录 → 跳登录
+(function init() {
   if (!getToken()) { location.replace('login.html?return=' + encodeURIComponent(location.href)); return; }
-  let me;
-  try { me = await request('/api/auth/me'); } catch (e) { location.replace('login.html'); return; }
-  setCurrentUser(me);
+  const me = getCurrentUser();
+  if (!me || !me.role) { location.replace('login.html'); return; }
 
   const mat = ACCESS_MATRIX[me.role];
   document.getElementById('userName').textContent = me.realName;
   document.getElementById('userRole').textContent = '（' + (mat ? mat.name : me.role) + '）';
 
-  // 过滤菜单
   document.querySelectorAll('#menuList [data-allow]').forEach(a => {
     const k = a.dataset.allow;
     if (!mat || !mat.allow.has(k)) a.style.display = 'none';
