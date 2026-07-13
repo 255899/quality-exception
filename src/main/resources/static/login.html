@@ -187,11 +187,16 @@ form.addEventListener('submit', async (e) => {
   if (!username || !password) { errEl.textContent = '请填写用户名和密码'; return; }
   btn.disabled = true; btn.textContent = '登录中…';
   try {
-    const r = await fetch('/api/auth/login', {
+    const r = await fetch(API + '/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
     });
+    const ct = r.headers.get('content-type') || '';
+    if (!ct.includes('application/json')) {
+      const text = await r.text();
+      throw new Error(r.status === 404 ? '后端服务未启动或API地址错误' : (text || '服务器返回异常'));
+    }
     const json = await r.json();
     if (json.code !== 0) throw new Error(json.message || '登录失败');
     setToken(json.data.token);
@@ -217,9 +222,8 @@ document.getElementById('btnExit').addEventListener('click', (e) => {
   location.replace('index.html');
 });
 
-// 已登录则直接跳转
 if (getToken()) {
-  fetch('/api/auth/me', { headers: { 'X-Auth-Token': getToken() } })
+  fetch(API + '/api/auth/me', { headers: { 'X-Auth-Token': getToken() } })
     .then(r => r.ok ? location.replace(returnTo) : null)
     .catch(() => {});
 }

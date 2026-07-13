@@ -36,11 +36,19 @@ async function request(url, opts) {
   if (tk) headers['X-Auth-Token'] = tk;
   const res = await fetch(API + url, Object.assign({}, opts, { headers }));
   if (res.status === 401) {
-    // 登录态失效
     logoutLocal();
     throw new Error('登录已失效');
   }
-  const json = await res.json().catch(() => ({ code: res.status, message: '返回非 JSON' }));
+  const contentType = res.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    const text = await res.text();
+    let msg = '服务器返回非JSON数据';
+    if (res.status === 404) msg = '接口不存在';
+    else if (res.status === 500) msg = '服务器内部错误';
+    else if (text && text.length > 0) msg = text.substring(0, 100);
+    throw new Error(msg);
+  }
+  const json = await res.json();
   if (json.code !== 0) {
     throw new Error(json.message || '请求失败');
   }

@@ -254,7 +254,7 @@ async function loadQcUsers() {
 async function uploadFile(file) {
   const fd = new FormData();
   fd.append('file', file);
-  const r = await fetch('/api/upload', { method: 'POST', body: fd });
+  const r = await fetch(API + '/api/upload', { method: 'POST', body: fd });
   const j = await r.json();
   if (j.code !== 0) throw new Error(j.message || '上传失败');
   return j.data;
