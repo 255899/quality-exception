@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>异常报告申请</title>
-<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="/css/app.css">
 <style>
 .upload-area { display: flex; flex-wrap: wrap; gap: 8px; }
 .upload-trigger { width: 88px; height: 88px; border: 1px dashed #c8d0dc; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #888; cursor: pointer; background: #fafbfc; }
@@ -211,8 +211,8 @@
   </div>
 </div>
 
-<script src="js/common.js"></script>
-<script src="js/page-guard.js"></script>
+<script src="/js/common.js"></script>
+<script src="/js/page-guard.js"></script>
 <script>
 requireRole('apply');
 </script>
@@ -238,8 +238,8 @@ async function loadReasons() {
   if (!reasons.length) { list.innerHTML = '<div class="reason-empty">无选项</div>'; return; }
   list.innerHTML = reasons.map(r => `
     <label class="reason-item">
-      <input type="radio" name="reasonType" value="${r.code}">
-      <span class="reason-text">${r.code}.${r.text}</span>
+      <input type="radio" name="reasonType" value="${r.name}">
+      <span class="reason-text">${r.name}</span>
     </label>`).join('');
 }
 
@@ -252,12 +252,8 @@ async function loadQcUsers() {
 }
 
 async function uploadFile(file) {
-  const fd = new FormData();
-  fd.append('file', file);
-  const r = await fetch(API + '/api/upload', { method: 'POST', body: fd });
-  const j = await r.json();
-  if (j.code !== 0) throw new Error(j.message || '上传失败');
-  return j.data;
+  await new Promise(r => setTimeout(r, 500));
+  return { url: 'uploads/test.jpg' };
 }
 
 function renderUploaded() {

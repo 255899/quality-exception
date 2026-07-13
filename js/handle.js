@@ -39,13 +39,10 @@ async function resolveDept(r) {
 
 async function submitAction(action) {
   if (!window.__EXCEPTION_ID) return;
-  let u = getCurrentUser();
-  if (!u || (u.id == null && u.userId == null)) {
-    try { u = await request('/api/auth/me'); setCurrentUser(u); } catch (e) {}
-  }
-  if (!u || (u.id == null && u.userId == null)) { toast('请先登录'); location.replace('login.html?return=' + encodeURIComponent(location.pathname + location.search)); return; }
+  const u = getCurrentUser();
+  if (!u || !u.id) { toast('请先登录'); location.replace('login.html?return=' + encodeURIComponent(location.pathname + location.search)); return; }
   if (!window.__FLOW_STEP) { toast('缺少流程步骤参数 (step)'); return; }
-  const handlerId = u.id || u.userId;
+  const handlerId = u.id;
   const comment = document.getElementById('comment').value.trim();
   try {
     await request(`/api/exceptions/flow/${window.__FLOW_STEP}`, {
