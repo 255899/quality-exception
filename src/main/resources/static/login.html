@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>登录 - 品质异常处理系统</title>
+<link rel="stylesheet" href="/css/app.css">
+<style>
+body { background: linear-gradient(160deg, #1f7be5 0%, #115fb5 100%); min-height: 100vh; margin: 0; position: relative; overflow-x: hidden; }
+
+/* 斜向 EXCELLENT 背景文字（铺满整屏） */
+.bg-text {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 6vh;
+  transform: rotate(-22deg);
+  /* 整体再放大，让文字在倾斜后仍能横跨屏幕宽度 */
+  transform-origin: center center;
+  white-space: nowrap;
+  user-select: none;
+}
+.bg-text span {
+  display: block;
+  font-family: "Arial Black", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.18);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  line-height: 1;
+}
+.bg-text span:nth-child(1) { font-size: 22vw; }
+.bg-text span:nth-child(2) { font-size: 16vw; opacity: 0.12; margin-left: 12vw; }
+.bg-text span:nth-child(3) { font-size: 22vw; }
+
+/* 顶部退出按钮 */
+.exit-bar { position: fixed; top: 12px; right: 12px; z-index: 100; }
+.btn-exit { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: rgba(255,255,255,0.95); color: #115fb5; border: 1px solid rgba(255,255,255,0.6); border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.18); transition: transform 0.15s, background 0.15s; }
+.btn-exit:active { transform: scale(0.96); background: #fff; }
+.btn-exit::before { content: '‹'; font-size: 18px; line-height: 1; font-weight: 700; }
+
+.login-wrap { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; position: relative; z-index: 1; }
+
+/* 双 logo 组合：左右排列，中文标识 + 英文标识 */
+.brand { color: #fff; text-align: center; margin-bottom: 24px; }
+.brand .logo-row { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 0 auto 16px; flex-wrap: wrap; }
+.brand .logo {
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 600; color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 16px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.brand .logo-cn { height: 76px; padding: 0 22px; font-size: 28px; letter-spacing: 4px; }
+.brand .logo-en { height: 60px; padding: 0 18px; font-size: 22px; letter-spacing: 6px; font-weight: 800; }
+.brand .divider { width: 1px; height: 56px; background: rgba(255,255,255,0.45); }
+
+/* 上下并列的 logo 组合 */
+.brand .logo-stack { display: flex; flex-direction: column; align-items: center; gap: 12px; margin: 0 auto 16px; }
+.brand .logo-cn-top { width: 270px; height: 72px; font-size: 30px; letter-spacing: 4px; }
+.brand .logo-en-top { width: 270px; height: 56px; font-size: 24px; font-weight: 800; letter-spacing: 10px; }
+
+/* 合并后的 logo：上下结构，单一圆角大卡片 */
+.brand .logo-merged {
+  width: 290px;
+  margin: 0 auto 16px;
+  padding: 18px 0 14px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 20px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.14);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: #fff;
+  text-align: center;
+}
+.brand .logo-merged-cn { font-size: 26px; font-weight: 600; letter-spacing: 4px; line-height: 1.2; }
+.brand .logo-merged-en { font-size: 22px; font-weight: 800; letter-spacing: 8px; line-height: 1.2; border-top: 1px solid rgba(255, 255, 255, 0.35); margin-top: 8px; padding-top: 8px; width: 78%; }
+.brand .title { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+.brand .sub { font-size: 13px; opacity: 0.85; }
+
+.card { width: 100%; max-width: 380px; background: #fff; border-radius: 14px; padding: 24px 20px; box-shadow: 0 12px 32px rgba(0,0,0,0.18); }
+.card h2 { font-size: 17px; margin-bottom: 18px; color: #222; text-align: center; }
+.form-item { margin-bottom: 14px; }
+.form-item label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; }
+.form-item input { width: 100%; padding: 12px 14px; border: 1px solid #d8dde6; border-radius: 8px; font-size: 15px; box-sizing: border-box; }
+.form-item input:focus { border-color: #1f7be5; outline: none; box-shadow: 0 0 0 3px rgba(31,123,229,0.15); }
+.btn-login { width: 100%; padding: 13px 0; background: #1f7be5; color: #fff; border: none; border-radius: 24px; font-size: 16px; font-weight: 500; cursor: pointer; margin-top: 4px; }
+.btn-login:active { opacity: 0.85; }
+.btn-login:disabled { opacity: 0.6; }
+.error { color: #d33; font-size: 13px; min-height: 18px; text-align: center; margin-bottom: 6px; }
+.demo-accounts { margin-top: 20px; padding: 12px; background: #f5f7fa; border-radius: 8px; font-size: 12px; color: #555; line-height: 1.7; }
+.demo-accounts b { color: #1f7be5; }
+.demo-accounts .row { display: flex; justify-content: space-between; padding: 2px 0; }
+.demo-accounts .use { color: #1f7be5; cursor: pointer; }
+.notice { font-size: 11px; color: #fff; opacity: 0.85; text-align: center; margin-top: 18px; text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+
+/* 响应式：小屏适配 */
+@media (max-width: 480px) {
+  .brand .logo-row { gap: 10px; }
+  .brand .logo-cn { height: 60px; padding: 0 16px; font-size: 22px; letter-spacing: 2px; }
+  .brand .logo-en { height: 48px; padding: 0 14px; font-size: 18px; letter-spacing: 4px; }
+  .brand .divider { height: 44px; }
+  /* 合并 logo 的小屏适配：保持垂直堆叠，缩小尺寸 */
+  .brand .logo-merged { width: 250px; padding: 14px 0 12px; gap: 4px; }
+  .brand .logo-merged-cn { font-size: 22px; letter-spacing: 3px; }
+  .brand .logo-merged-en { font-size: 18px; letter-spacing: 6px; margin-top: 6px; padding-top: 6px; width: 75%; }
+  .bg-text span:nth-child(1) { font-size: 32vw; }
+  .bg-text span:nth-child(2) { font-size: 24vw; }
+  .bg-text span:nth-child(3) { font-size: 32vw; }
+}
+</style>
+</head>
+<body>
+<!-- 斜向贯穿整屏的 EXCELLENT 背景文字（z-index:0 位于前景之下） -->
+<div class="bg-text" aria-hidden="true">
+  <span>EXCELLENT</span>
+  <span>EXCELLENT</span>
+  <span>EXCELLENT</span>
+</div>
+
+<!-- 顶部退出按钮：返回品质异常处理首页 -->
+<div class="exit-bar">
+  <button type="button" class="btn-exit" id="btnExit" title="返回品质异常处理">退出</button>
+</div>
+
+<div class="login-wrap">
+  <div class="brand">
+    <div class="logo-merged">
+      <div class="logo-merged-cn">艾科赛工业智能</div>
+      <div class="logo-merged-en">EXCELLENT</div>
+    </div>
+    <div class="title">品质异常处理系统</div>
+    <div class="sub">Quality Exception Management</div>
+  </div>
+  <div class="card">
+    <h2>账号登录</h2>
+    <div class="error" id="err"></div>
+    <form id="loginForm">
+      <div class="form-item">
+        <label>用户名</label>
+        <input type="text" id="username" autocomplete="username" placeholder="请输入用户名" required>
+      </div>
+      <div class="form-item">
+        <label>密码</label>
+        <input type="password" id="password" autocomplete="current-password" placeholder="请输入密码" required>
+      </div>
+      <button type="submit" class="btn-login" id="btnLogin">登录</button>
+    </form>
+  </div>
+  <div class="notice">登录后可访问管理后台；密码错误或无权限将明确提示</div>
+</div>
+
+<script src="/js/common.js"></script>
+<script>
+const form = document.getElementById('loginForm');
+const errEl = document.getElementById('err');
+const btn = document.getElementById('btnLogin');
+const returnTo = (new URLSearchParams(location.search)).get('return') || 'index.html';
+
+document.querySelectorAll('.demo-accounts .use').forEach(el => {
+  el.addEventListener('click', () => {
+    document.getElementById('username').value = el.dataset.u;
+    document.getElementById('password').value = '123456';
+    form.dispatchEvent(new Event('submit'));
+  });
+});
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  errEl.textContent = '';
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  if (!username || !password) { errEl.textContent = '请填写用户名和密码'; return; }
+  btn.disabled = true; btn.textContent = '登录中…';
+  try {
+    const r = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const json = await r.json();
+    if (json.code !== 0) throw new Error(json.message || '登录失败');
+    setToken(json.data.token);
+    setCurrentUser(json.data);
+    location.replace(returnTo);
+  } catch (e) {
+    errEl.textContent = e.message;
+  } finally {
+    btn.disabled = false; btn.textContent = '登录';
+  }
+});
+
+// 退出按钮：清空表单输入，返回品质异常处理首页（不会保留登录页任何状态）
+document.getElementById('btnExit').addEventListener('click', (e) => {
+  e.preventDefault();
+  try {
+    // 清空输入
+    document.getElementById('username').value = '';
+    document.getElementById('password').value = '';
+    document.getElementById('err').textContent = '';
+  } catch (_) {}
+  // 用 replace 跳转，不留历史记录
+  location.replace('index.html');
+});
+
+// 已登录则直接跳转
+if (getToken()) {
+  fetch('/api/auth/me', { headers: { 'X-Auth-Token': getToken() } })
+    .then(r => r.ok ? location.replace(returnTo) : null)
+    .catch(() => {});
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>流程处理</title>
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<div class="app">
+  <div class="page-header">
+    <a class="back" href="javascript:history.back()">‹</a>
+    <div class="title" id="pageTitle">流程处理</div>
+    <div></div>
+  </div>
+  <div class="body detail">
+    <div class="card">
+      <div class="field">
+        <label>异常单编号</label>
+        <div style="font-size:18px;font-weight:600;color:#1f7be5" id="code">--</div>
+        <div style="margin-top:6px" id="status"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="kv"><div class="k">现场实施者</div><div class="v" id="implementer">-</div></div>
+      <div class="kv"><div class="k">发生时间</div><div class="v" id="occurredAt">-</div></div>
+      <div class="kv"><div class="k">报告者</div><div class="v" id="reporter">-</div></div>
+      <div class="kv"><div class="k">异常点</div><div class="v" id="exceptionPoint">-</div></div>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <label>异常描述</label>
+        <div class="detail-desc" id="description">-</div>
+      </div>
+      <div class="field">
+        <label>处理意见</label>
+        <textarea id="comment" placeholder="请输入处理意见（可选）"></textarea>
+      </div>
+    </div>
+
+    <div class="section-title">流转记录</div>
+    <div class="card" id="flowBox"></div>
+  </div>
+
+  <div class="bottom-action">
+    <button class="btn btn-outline" data-action="驳回">驳回</button>
+    <button class="btn" data-action="通过">通过</button>
+  </div>
+</div>
+
+<script src="/js/common.js"></script>
+<script src="/js/handle.js"></script>
+<script>
+const STEP_NAMES = {
+  QC_HANDLE: '加工现场品管异常处理',
+  SHIFT_CONFIRM: '恢复生产首件确认(现场班长)',
+  QC_CONFIRM: '恢复生产首件确认(现场品管)',
+  LEADER_CONFIRM: '加工课组长确认',
+  CHIEF_CONFIRM: '加工课课长确认',
+  QUALITY_CONFIRM: '品质课课长确认'
+};
+const sp = new URLSearchParams(location.search);
+const step = sp.get('step');
+if (STEP_NAMES[step]) document.getElementById('pageTitle').textContent = STEP_NAMES[step];
+</script>
+</body>
+</html>

@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>异常报告申请</title>
+<link rel="stylesheet" href="/css/app.css">
+<style>
+.upload-area { display: flex; flex-wrap: wrap; gap: 8px; }
+.upload-trigger { width: 88px; height: 88px; border: 1px dashed #c8d0dc; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #888; cursor: pointer; background: #fafbfc; }
+.upload-icon { font-size: 24px; line-height: 1; margin-bottom: 4px; }
+.upload-hint { color: #999; font-size: 12px; margin-top: 6px; }
+.uploaded-thumb { position: relative; width: 88px; height: 88px; border-radius: 6px; overflow: hidden; }
+.uploaded-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.thumb-remove { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; background: rgba(0,0,0,0.6); color: #fff; border-radius: 50%; text-align: center; line-height: 20px; cursor: pointer; font-size: 14px; }
+.reason-list { display: flex; flex-direction: column; gap: 4px; }
+.reason-item { display: flex; align-items: center; padding: 6px 4px; cursor: pointer; }
+.reason-item input[type="radio"] { margin-right: 8px; transform: scale(1.1); }
+.reason-text { color: #333; font-size: 14px; }
+.reason-empty { color: #999; font-size: 13px; }
+
+/* === 底部动作菜单（拍照/相册/取消） === */
+.sheet-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 998; display: flex; align-items: flex-end; justify-content: center; opacity: 0; transition: opacity 0.25s ease; }
+.sheet-mask.show { opacity: 1; }
+.sheet { width: 100%; max-width: 480px; padding: 0 8px 16px; transform: translateY(100%); transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1); }
+.sheet-mask.show .sheet { transform: translateY(0); }
+.sheet-item, .sheet-cancel { background: #fff; text-align: center; padding: 16px 0; font-size: 16px; color: #222; cursor: pointer; }
+.sheet-item { border-top: 1px solid #eee; }
+.sheet-item:first-child { border-top: none; border-radius: 8px 8px 0 0; }
+.sheet-cancel { margin-top: 8px; border-radius: 8px; font-size: 15px; }
+.sheet-item:active, .sheet-cancel:active { background: #f0f0f0; }
+.sheet-camera { color: #1faa8a; font-weight: 600; }
+.sheet-album { color: #1faa8a; font-weight: 600; }
+
+/* === 申请成功：全屏动画 === */
+.success-overlay { position: fixed; inset: 0; z-index: 999; display: none; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
+.success-overlay.show { display: flex; animation: fadeIn 0.3s ease both; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.success-circle { position: absolute; top: 50%; left: 50%; width: 100vmax; height: 100vmax; background: linear-gradient(135deg, #1faa8a 0%, #14c1a3 100%); border-radius: 50%; transform: translate(-50%, -50%) scale(0); animation: circleExpand 0.7s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+@keyframes circleExpand { 0% { transform: translate(-50%, -50%) scale(0); } 70% { transform: translate(-50%, -50%) scale(1.1); } 100% { transform: translate(-50%, -50%) scale(1); } }
+
+.success-card { position: relative; z-index: 2; color: #fff; text-align: center; padding: 0 20px; max-width: 360px; width: 80%; opacity: 0; transform: translateY(20px); animation: cardIn 0.5s 0.55s ease forwards; }
+@keyframes cardIn { to { opacity: 1; transform: translateY(0); } }
+
+.success-check { width: 96px; height: 96px; margin: 0 auto 24px; }
+.success-svg { width: 100%; height: 100%; }
+.success-svg-circle { stroke-dasharray: 166; stroke-dashoffset: 166; animation: dashCircle 0.6s 0.5s ease-out forwards; }
+.success-svg-check { stroke-dasharray: 48; stroke-dashoffset: 48; animation: dashCheck 0.5s 0.95s cubic-bezier(0.6, 0, 0.4, 1) forwards; }
+@keyframes dashCircle { to { stroke-dashoffset: 0; } }
+@keyframes dashCheck { to { stroke-dashoffset: 0; } }
+
+.success-title { font-size: 22px; font-weight: 600; margin-bottom: 24px; letter-spacing: 1px; }
+.success-code-box { background: rgba(255,255,255,0.18); border-radius: 8px; padding: 14px 0; margin-bottom: 20px; backdrop-filter: blur(4px); }
+.success-code-label { font-size: 13px; opacity: 0.95; }
+.success-code { font-size: 26px; font-weight: 700; letter-spacing: 2px; margin-top: 6px; }
+.success-msg { font-size: 13px; line-height: 1.7; opacity: 0.95; margin-bottom: 28px; }
+.btn-success-cta { background: rgba(255,255,255,0.25); color: #fff; border: none; padding: 12px 0; border-radius: 24px; font-size: 15px; width: 100%; cursor: pointer; backdrop-filter: blur(4px); transition: background 0.2s; }
+.btn-success-cta:active { background: rgba(255,255,255,0.4); }
+
+/* 几个飞出的圆点（点缀） */
+.success-overlay::before, .success-overlay::after { content: ''; position: absolute; border-radius: 50%; background: rgba(255,255,255,0.15); animation: floatUp 1.5s 0.4s ease-out both; }
+.success-overlay::before { width: 12px; height: 12px; left: 15%; top: 80%; }
+.success-overlay::after { width: 8px; height: 8px; right: 18%; top: 75%; animation-delay: 0.55s; }
+@keyframes floatUp { 0% { transform: translateY(0) scale(0); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(-180px) scale(1.2); opacity: 0; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="page-header">
+    <div></div>
+    <div class="title">异常报告申请</div>
+    <a class="btn-exit" href="javascript:void(0)" onclick="goMenu()">退出</a>
+  </div>
+
+  <div class="body">
+    <div class="card">
+      <div class="field">
+        <label>异常单编号</label>
+        <div class="code-preview" id="codePreview">--</div>
+        <div class="code-hint">编号为预览，实际以提交后生成的为准</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <label>现场实施者</label>
+        <input type="text" id="implementer" placeholder="请输入现场实施者">
+      </div>
+
+      <div class="field">
+        <label>发生时间</label>
+        <div class="time-block" id="timeBlock">--</div>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <input type="date" id="occurDate" style="flex:1">
+          <select id="shift" style="flex:1">
+            <option value="早班">早班</option>
+            <option value="中班">中班</option>
+            <option value="晚班">晚班</option>
+          </select>
+          <input type="time" id="occurTime" style="flex:1">
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">异常点</div>
+    <div class="card">
+      <div class="field">
+        <label>课<span class="req">*</span></label>
+        <div class="select">
+          <select id="section"><option value="">请选择</option></select>
+        </div>
+      </div>
+      <div class="field">
+        <label>组<span class="req">*</span></label>
+        <div class="select">
+          <select id="group" disabled><option value="">请先选择课</option></select>
+        </div>
+      </div>
+      <div class="field">
+        <label>产线<span class="req">*</span></label>
+        <div class="select">
+          <select id="line" disabled><option value="">请先选择组</option></select>
+        </div>
+      </div>
+      <div class="field">
+        <label>工程</label>
+        <div class="select">
+          <select id="process" disabled><option value="">请先选择产线</option></select>
+        </div>
+      </div>
+      <div class="field">
+        <label>部品名称/编号</label>
+        <div class="select">
+          <select id="part" disabled><option value="">请先选择工程</option></select>
+        </div>
+        <div class="code-hint">请先选择课、组、产线后再选择部品</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <label>异常描述<span class="req">*</span></label>
+        <textarea id="description" placeholder="请输入异常描述"></textarea>
+      </div>
+      <div class="field">
+        <label>发现动机</label>
+        <textarea id="discoveryReason" placeholder="请输入发现动机"></textarea>
+      </div>
+      <div class="field">
+        <label>附图<span class="req">*</span></label>
+        <div class="upload-area" id="uploadArea">
+          <div class="upload-trigger" id="uploadTrigger">
+            <div class="upload-icon">+</div>
+            <div>添加图片</div>
+          </div>
+          <input type="file" id="fileAlbum" accept="image/*" style="display:none">
+        </div>
+        <div class="upload-hint">至少上传一张图片，支持拍照或从相册选择</div>
+      </div>
+      <div class="field">
+        <label>异常发生选项<span class="req">*</span></label>
+        <div class="reason-list" id="reasonList">
+          <div class="reason-empty">加载中...</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>品管人员<span class="req">*</span></label>
+        <div class="select">
+          <select id="qcHandler" disabled><option value="">加载中...</option></select>
+        </div>
+      </div>
+      <div class="field">
+        <label>作业/报告者<span class="req">*</span></label>
+        <input type="text" id="reporter" placeholder="请输入作业/报告者">
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-action">
+    <button class="btn btn-block" id="btnSubmit">申请</button>
+  </div>
+</div>
+
+<!-- 附图选择底部菜单 -->
+<div class="sheet-mask" id="sheetMask" style="display:none">
+  <div class="sheet" id="sheet">
+    <div class="sheet-item sheet-camera" id="sheetCamera">拍摄</div>
+    <div class="sheet-item sheet-album" id="sheetAlbum">从手机相册选择</div>
+    <div class="sheet-cancel" id="sheetCancel">取消</div>
+  </div>
+</div>
+
+<!-- 申请成功弹窗（全屏动画） -->
+<div class="success-overlay" id="successModal">
+  <div class="success-circle"></div>
+  <div class="success-card">
+    <div class="success-check">
+      <svg viewBox="0 0 52 52" class="success-svg">
+        <circle class="success-svg-circle" cx="26" cy="26" r="24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>
+        <path class="success-svg-check" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" d="M14 27 L23 36 L40 18"/>
+      </svg>
+    </div>
+    <div class="success-title">申请成功</div>
+    <div class="success-code-box">
+      <div class="success-code-label">异常单编号</div>
+      <div class="success-code" id="successCode">--</div>
+    </div>
+    <div class="success-msg">您的异常报告已成功提交<br>请等待品管人员处理</div>
+    <button class="btn-success-cta" id="btnContinue">继续申请</button>
+  </div>
+</div>
+
+<script src="/js/common.js"></script>
+<script src="/js/page-guard.js"></script>
+<script>
+requireRole('apply');
+</script>
+<script>
+let sections = [], groups = [], lines = [], processes = [];
+let reasons = [], qcUsers = [];
+let uploaded = []; // {id, url}
+
+async function loadPreviewCode() {
+  const code = await request('/api/exceptions/preview-code');
+  $('#codePreview').textContent = code;
+}
+
+async function loadSections() {
+  sections = await request('/api/departments/sections');
+  const sel = $('#section');
+  sel.innerHTML = '<option value="">请选择</option>' + sections.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+}
+
+async function loadReasons() {
+  reasons = await request('/api/exception-reasons');
+  const list = $('#reasonList');
+  if (!reasons.length) { list.innerHTML = '<div class="reason-empty">无选项</div>'; return; }
+  list.innerHTML = reasons.map(r => `
+    <label class="reason-item">
+      <input type="radio" name="reasonType" value="${r.code}">
+      <span class="reason-text">${r.code}.${r.text}</span>
+    </label>`).join('');
+}
+
+async function loadQcUsers() {
+  qcUsers = await request('/api/users/qc');
+  const sel = $('#qcHandler');
+  if (!qcUsers.length) { sel.innerHTML = '<option value="">暂无品管人员</option>'; sel.disabled = true; return; }
+  sel.innerHTML = '<option value="">请选择</option>' + qcUsers.map(u => `<option value="${u.id}">${u.realName}</option>`).join('');
+  sel.disabled = false;
+}
+
+async function uploadFile(file) {
+  const fd = new FormData();
+  fd.append('file', file);
+  const r = await fetch('/api/upload', { method: 'POST', body: fd });
+  const j = await r.json();
+  if (j.code !== 0) throw new Error(j.message || '上传失败');
+  return j.data;
+}
+
+function renderUploaded() {
+  const area = $('#uploadArea');
+  const trigger = $('#uploadTrigger');
+  const existing = area.querySelectorAll('.uploaded-thumb');
+  existing.forEach(e => e.remove());
+  uploaded.forEach((u, idx) => {
+    const div = document.createElement('div');
+    div.className = 'uploaded-thumb';
+    div.innerHTML = `<img src="${u.url}"><span class="thumb-remove" data-idx="${idx}">×</span>`;
+    area.insertBefore(div, trigger);
+  });
+  area.querySelectorAll('.thumb-remove').forEach(el => {
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      uploaded.splice(+el.dataset.idx, 1);
+      renderUploaded();
+    });
+  });
+}
+
+function bindUpload() {
+  const trigger = $('#uploadTrigger');
+  const alb = $('#fileAlbum');
+  const sheet = $('#sheetMask');
+  const handleFiles = async (input) => {
+    const files = Array.from(input.files || []);
+    input.value = '';
+    for (const f of files) {
+      try {
+        toast('上传中...');
+        const att = await uploadFile(f);
+        uploaded.push(att);
+        renderUploaded();
+        toast('上传成功');
+      } catch (err) { toast(err.message); }
+    }
+  };
+  // 点 + 号弹底部菜单
+  trigger.addEventListener('click', () => {
+    sheet.classList.add('show');
+    sheet.style.display = 'flex';
+  });
+  $('#sheetCancel').addEventListener('click', () => {
+    sheet.classList.remove('show');
+    setTimeout(() => { sheet.style.display = 'none'; }, 250);
+  });
+  sheet.addEventListener('click', e => { if (e.target === sheet) $('#sheetCancel').click(); });
+  $('#sheetCamera').addEventListener('click', () => {
+    $('#sheetCancel').click();
+    // 跳转到内置摄像头模块（拍摄完成后由 camera.html 写回 sessionStorage 并跳回）
+    setTimeout(() => { location.href = 'camera.html?return=apply.html'; }, 260);
+  });
+  $('#sheetAlbum').addEventListener('click', () => {
+    $('#sheetCancel').click();
+    setTimeout(() => alb.click(), 260);
+  });
+  alb.addEventListener('change', () => handleFiles(alb));
+}
+
+function refreshTime() {
+  const d = $('#occurDate').value;
+  const s = $('#shift').value;
+  const t = $('#occurTime').value;
+  if (d) {
+    const time = t || '00:00';
+    $('#timeBlock').textContent = `${d} ${s} ${time}`;
+  } else {
+    $('#timeBlock').textContent = '--';
+  }
+}
+
+async function onSectionChange() {
+  const sid = +$('#section').value;
+  const gsel = $('#group'), lsel = $('#line'), psel = $('#process');
+  gsel.innerHTML = '<option value="">请选择</option>';
+  lsel.innerHTML = '<option value="">请先选择组</option>';
+  psel.innerHTML = '<option value="">请先选择产线</option>';
+  lsel.disabled = true;
+  psel.disabled = true;
+  if (!sid) { gsel.disabled = true; return; }
+  groups = await request(`/api/departments/groups?sectionId=${sid}`);
+  gsel.innerHTML = '<option value="">请选择</option>' + groups.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+  gsel.disabled = false;
+}
+
+async function onGroupChange() {
+  const gid = +$('#group').value;
+  const lsel = $('#line'), psel = $('#process');
+  lsel.innerHTML = '<option value="">请选择</option>';
+  psel.innerHTML = '<option value="">请先选择产线</option>';
+  psel.disabled = true;
+  if (!gid) { lsel.disabled = true; return; }
+  lines = await request(`/api/departments/lines?groupId=${gid}`);
+  lsel.innerHTML = '<option value="">请选择</option>' + lines.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+  lsel.disabled = false;
+}
+
+async function onLineChange() {
+  const lid = +$('#line').value;
+  const psel = $('#process');
+  psel.innerHTML = '<option value="">请选择</option>';
+  $('#part').innerHTML = '<option value="">请先选择工程</option>';
+  $('#part').disabled = true;
+  if (!lid) { psel.disabled = true; return; }
+  processes = await request(`/api/departments/processes?lineId=${lid}`);
+  psel.innerHTML = '<option value="">请选择</option>' + processes.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  psel.disabled = false;
+}
+
+async function onProcessChange() {
+  const pid = +$('#process').value;
+  const psel = $('#part');
+  psel.innerHTML = '<option value="">请选择</option>';
+  if (!pid) { psel.disabled = true; return; }
+  const parts = await request(`/api/departments/parts?processId=${pid}`);
+  if (!parts.length) {
+    psel.innerHTML = '<option value="">该工程暂无部品</option>';
+    psel.disabled = true;
+    return;
+  }
+  psel.innerHTML = '<option value="">请选择</option>' + parts.map(p => `<option value="${p.id}">${p.code} - ${p.name}</option>`).join('');
+  psel.disabled = false;
+}
+
+function goMenu() { location.href = '/index.html'; }
+
+async function submit() {
+  const sid = +$('#section').value, gid = +$('#group').value, lid = +$('#line').value;
+  if (!sid || !gid || !lid) return toast('请完整选择课/组/产线');
+  const desc = $('#description').value.trim();
+  const reporter = $('#reporter').value.trim();
+  if (!desc) return toast('请输入异常描述');
+  if (!reporter) return toast('请输入作业/报告者');
+  if (uploaded.length < 1) return toast('请至少上传一张附图');
+  const reasonEl = document.querySelector('input[name="reasonType"]:checked');
+  if (!reasonEl) return toast('请选择异常发生选项');
+  const qcId = +$('#qcHandler').value;
+  if (!qcId) return toast('请选择品管人员');
+
+  const d = $('#occurDate').value, t = $('#occurTime').value;
+  const occurredAt = (d && t) ? new Date(`${d}T${t}:00`) : new Date();
+
+  const u = getCurrentUser();
+  const body = {
+    implementer: $('#implementer').value.trim() || (u ? u.realName : ''),
+    occurredAt: occurredAt.toISOString(),
+    shift: $('#shift').value,
+    sectionId: sid,
+    groupId: gid,
+    lineId: lid,
+    processId: +$('#process').value || null,
+    partId: +$('#part').value || null,
+    description: desc,
+    discoveryReason: $('#discoveryReason').value.trim() || null,
+    reasonType: reasonEl.value,
+    qcHandlerId: qcId,
+    attachmentIds: uploaded.map(a => a.id),
+    reporter: reporter,
+    applicantId: u ? u.id : null
+  };
+  try {
+    const rep = await request('/api/exceptions/apply', { method: 'POST', body: JSON.stringify(body) });
+    showSuccess(rep.code);
+  } catch (e) {
+    toast(e.message);
+  }
+}
+
+function showSuccess(code) {
+  $('#successCode').textContent = code;
+  const m = $('#successModal');
+  m.classList.remove('show');
+  // 强制重启动画
+  void m.offsetWidth;
+  m.style.display = 'flex';
+  m.classList.add('show');
+  // 重新触发内部子元素动画
+  m.querySelectorAll('.success-circle, .success-card, .success-svg-circle, .success-svg-check').forEach(el => {
+    el.style.animation = 'none';
+    void el.offsetWidth;
+    el.style.animation = '';
+  });
+}
+
+function hideSuccess() {
+  const m = $('#successModal');
+  m.classList.remove('show');
+  setTimeout(() => { m.style.display = 'none'; }, 200);
+}
+
+function resetForm() {
+  // 重置文件
+  uploaded = [];
+  renderUploaded();
+  // 重置 radio
+  document.querySelectorAll('input[name="reasonType"]').forEach(el => el.checked = false);
+  // 重置选择器
+  $('#qcHandler').selectedIndex = 0;
+  $('#part').innerHTML = '<option value="">请先选择工程</option>'; $('#part').disabled = true;
+  $('#process').innerHTML = '<option value="">请先选择产线</option>'; $('#process').disabled = true;
+  $('#line').innerHTML = '<option value="">请先选择组</option>'; $('#line').disabled = true;
+  $('#group').innerHTML = '<option value="">请先选择课</option>'; $('#group').disabled = true;
+  $('#section').selectedIndex = 0;
+  // 重置文本
+  $('#description').value = '';
+  $('#discoveryReason').value = '';
+}
+
+function initDefaults() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  $('#occurDate').value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  $('#occurTime').value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const h = now.getHours();
+  $('#shift').value = h < 8 ? '早班' : (h < 16 ? '中班' : '晚班');
+  const u = getCurrentUser();
+  if (u) $('#implementer').value = u.realName;
+  refreshTime();
+  $('#process').addEventListener('change', onProcessChange);
+  $('#btnSubmit').addEventListener('click', submit);
+}
+
+window.addEventListener('DOMContentLoaded', async () => {
+  initDefaults();
+  // 读取从 camera.html 拍摄返回的附件
+  try {
+    const raw = sessionStorage.getItem('camera_captured');
+    if (raw) {
+      const att = JSON.parse(raw);
+      if (att && att.id && att.url) {
+        // 去重
+        if (!uploaded.some(x => x.id === att.id)) {
+          uploaded.push({ id: att.id, url: att.url, fileName: att.fileName, size: att.size });
+          renderUploaded();
+          toast('已添加拍摄的照片');
+        }
+      }
+      sessionStorage.removeItem('camera_captured');
+    }
+  } catch (_) {}
+  await Promise.all([loadSections(), loadReasons(), loadQcUsers()]);
+  await loadPreviewCode();
+  bindUpload();
+  $('#section').addEventListener('change', onSectionChange);
+  $('#group').addEventListener('change', onGroupChange);
+  $('#line').addEventListener('change', onLineChange);
+  ['occurDate', 'shift', 'occurTime'].forEach(id => $('#' + id).addEventListener('change', refreshTime));
+  $('#btnSubmit').addEventListener('click', submit);
+  $('#btnContinue').addEventListener('click', async () => {
+    hideSuccess();
+    resetForm();
+    await loadPreviewCode();
+  });
+});
+</script>
+</body>
+</html>
