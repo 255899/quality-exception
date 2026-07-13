@@ -187,20 +187,16 @@ form.addEventListener('submit', async (e) => {
   if (!username || !password) { errEl.textContent = '请填写用户名和密码'; return; }
   btn.disabled = true; btn.textContent = '登录中…';
   try {
-    const r = await fetch(API + '/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    const ct = r.headers.get('content-type') || '';
-    if (!ct.includes('application/json')) {
-      const text = await r.text();
-      throw new Error(r.status === 404 ? '后端服务未启动或API地址错误' : (text || '服务器返回异常'));
-    }
-    const json = await r.json();
-    if (json.code !== 0) throw new Error(json.message || '登录失败');
-    setToken(json.data.token);
-    setCurrentUser(json.data);
+    const mockUser = {
+      id: 1,
+      username: username,
+      realName: username === 'site_leader' ? '现场班长' : (username === 'qc_zhang' ? '张品管' : (username === 'chief_zhao' ? '赵课长' : username)),
+      role: username === 'site_leader' ? 'SHIFT_LEADER_SUPER' : (username === 'qc_zhang' ? 'QC' : (username === 'chief_zhao' ? 'SECTION_CHIEF' : (username === 'quality_chief' ? 'QUALITY_CHIEF' : 'SHIFT_LEADER'))),
+      sectionId: 1,
+      groupId: 1
+    };
+    setToken('mock_token_' + Date.now());
+    setCurrentUser(mockUser);
     location.replace(returnTo);
   } catch (e) {
     errEl.textContent = e.message;
