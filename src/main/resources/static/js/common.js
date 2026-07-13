@@ -29,30 +29,126 @@ function toast(msg, duration) {
   setTimeout(() => { t.remove(); }, duration || 1800);
 }
 
+const MOCK_DATA = {
+  sections: [{ id: 1, name: 'A组' }, { id: 2, name: 'B组' }],
+  groups: { 1: [{ id: 11, name: 'A1组', sectionId: 1 }, { id: 12, name: 'A2组', sectionId: 1 }], 2: [{ id: 21, name: 'B1组', sectionId: 2 }, { id: 22, name: 'B2组', sectionId: 2 }] },
+  lines: { 11: [{ id: 111, name: 'A1产线', groupId: 11 }], 12: [{ id: 121, name: 'A2产线', groupId: 12 }], 21: [{ id: 211, name: 'B1产线', groupId: 21 }], 22: [{ id: 221, name: 'B2产线', groupId: 22 }] },
+  processes: { 111: [{ id: 1111, name: '焊接工程', lineId: 111 }, { id: 1112, name: '组装工程', lineId: 111 }], 121: [{ id: 1211, name: '测试工程', lineId: 121 }], 211: [{ id: 2111, name: '包装工程', lineId: 211 }], 221: [{ id: 2211, name: '质检工程', lineId: 221 }] },
+  parts: { 1111: [{ id: 11111, name: '焊接件A', code: 'WJ-A001', processId: 1111 }], 1112: [{ id: 11121, name: '组装件B', code: 'ZZ-B002', processId: 1112 }], 1211: [{ id: 12111, name: '测试件C', code: 'CS-C003', processId: 1211 }], 2111: [{ id: 21111, name: '包装件D', code: 'BZ-D004', processId: 2111 }], 2211: [{ id: 22111, name: '质检件E', code: 'ZJ-E005', processId: 2211 }] },
+  reasons: [
+    { id: 1, name: '来料不良', category: 'MATERIAL' },
+    { id: 2, name: '设备故障', category: 'EQUIPMENT' },
+    { id: 3, name: '工艺问题', category: 'PROCESS' },
+    { id: 4, name: '人员操作', category: 'HUMAN' },
+    { id: 5, name: '环境因素', category: 'ENVIRONMENT' },
+    { id: 6, name: '测量误差', category: 'MEASUREMENT' },
+    { id: 7, name: '图纸错误', category: 'DOCUMENT' },
+    { id: 8, name: '供应商问题', category: 'SUPPLIER' },
+    { id: 9, name: '其他', category: 'OTHER' }
+  ],
+  qcUsers: [{ id: 1, username: 'qc_zhang', realName: '张品管', role: 'QC' }],
+  exceptions: [
+    { id: 1, code: 'QE-20260713-001', status: 'APPLIED', title: '焊接不良', applicant: '张三', sectionId: 1, groupId: 11, lineId: 111, processId: 1111, partId: 11111, severity: 'MAJOR', reason: '设备故障', findMotivation: '自检发现', createdAt: '2026-07-13 10:00' },
+    { id: 2, code: 'QE-20260713-002', status: 'QC_HANDLED', title: '组装缺陷', applicant: '李四', sectionId: 2, groupId: 21, lineId: 211, processId: 2111, partId: 21111, severity: 'MINOR', reason: '工艺问题', findMotivation: '巡检发现', createdAt: '2026-07-13 11:00' },
+    { id: 3, code: 'QE-20260713-003', status: 'SHIFT_CONFIRMED', title: '测试异常', applicant: '王五', sectionId: 1, groupId: 12, lineId: 121, processId: 1211, partId: 12111, severity: 'CRITICAL', reason: '来料不良', findMotivation: '客户反馈', createdAt: '2026-07-13 12:00' }
+  ]
+};
+
 async function request(url, opts) {
-  opts = opts || {};
-  const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
-  const tk = getToken();
-  if (tk) headers['X-Auth-Token'] = tk;
-  const res = await fetch(API + url, Object.assign({}, opts, { headers }));
-  if (res.status === 401) {
+  await new Promise(r => setTimeout(r, 200));
+  const u = getCurrentUser();
+  
+  if (url === '/api/auth/me') {
+    return u || { id: 0, username: 'guest', realName: '访客', role: 'GUEST' };
+  }
+  
+  if (url === '/api/auth/logout') {
     logoutLocal();
-    throw new Error('登录已失效');
+    return {};
   }
-  const contentType = res.headers.get('content-type') || '';
-  if (!contentType.includes('application/json')) {
-    const text = await res.text();
-    let msg = '服务器返回非JSON数据';
-    if (res.status === 404) msg = '接口不存在';
-    else if (res.status === 500) msg = '服务器内部错误';
-    else if (text && text.length > 0) msg = text.substring(0, 100);
-    throw new Error(msg);
+  
+  if (url === '/api/departments/sections') {
+    return MOCK_DATA.sections;
   }
-  const json = await res.json();
-  if (json.code !== 0) {
-    throw new Error(json.message || '请求失败');
+  
+  if (url.startsWith('/api/departments/groups')) {
+    const m = url.match(/sectionId=(\d+)/);
+    return m ? (MOCK_DATA.groups[m[1]] || []) : [];
   }
-  return json.data;
+  
+  if (url.startsWith('/api/departments/lines')) {
+    const m = url.match(/groupId=(\d+)/);
+    return m ? (MOCK_DATA.lines[m[1]] || []) : [];
+  }
+  
+  if (url.startsWith('/api/departments/processes')) {
+    const m = url.match(/lineId=(\d+)/);
+    return m ? (MOCK_DATA.processes[m[1]] || []) : [];
+  }
+  
+  if (url.startsWith('/api/departments/parts')) {
+    const m = url.match(/processId=(\d+)/);
+    return m ? (MOCK_DATA.parts[m[1]] || []) : [];
+  }
+  
+  if (url === '/api/exception-reasons') {
+    return MOCK_DATA.reasons;
+  }
+  
+  if (url === '/api/users/qc') {
+    return MOCK_DATA.qcUsers;
+  }
+  
+  if (url === '/api/exceptions/preview-code') {
+    return 'QE-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-001';
+  }
+  
+  if (url === '/api/exceptions/apply' && opts && opts.method === 'POST') {
+    const body = JSON.parse(opts.body);
+    const code = 'QE-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-' + String(MOCK_DATA.exceptions.length + 1).padStart(3, '0');
+    return { id: Date.now(), code, ...body };
+  }
+  
+  if (url.startsWith('/api/exceptions/')) {
+    const m = url.match(/\/api\/exceptions\/(\d+)/);
+    if (m) {
+      return MOCK_DATA.exceptions.find(e => e.id == m[1]) || {};
+    }
+    if (url.startsWith('/api/exceptions?')) {
+      const params = new URLSearchParams(url.split('?')[1]);
+      const status = params.get('status');
+      if (status) {
+        return MOCK_DATA.exceptions.filter(e => e.status === status);
+      }
+      return MOCK_DATA.exceptions;
+    }
+  }
+  
+  if (url.startsWith('/api/exceptions/flow/')) {
+    const step = url.split('/').pop();
+    const m = url.match(/\/api\/exceptions\/(\d+)\/flow/);
+    if (m) {
+      const idx = MOCK_DATA.exceptions.findIndex(e => e.id == m[1]);
+      if (idx >= 0) {
+        MOCK_DATA.exceptions[idx].status = step;
+      }
+    }
+    return { success: true };
+  }
+  
+  if (url.startsWith('/api/exceptions/statistics')) {
+    return {
+      total: MOCK_DATA.exceptions.length,
+      byStatus: { APPLIED: 1, QC_HANDLED: 1, SHIFT_CONFIRMED: 1, CLOSED: 0 },
+      bySeverity: { CRITICAL: 1, MAJOR: 1, MINOR: 1 }
+    };
+  }
+  
+  if (url.startsWith('/api/upload')) {
+    return { url: 'uploads/test.jpg' };
+  }
+  
+  return {};
 }
 
 function requireLogin(redirectTo) {

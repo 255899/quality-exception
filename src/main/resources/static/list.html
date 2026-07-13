@@ -160,7 +160,7 @@ document.getElementById('btnLogout').addEventListener('click', async () => {
 document.getElementById('btnFilter').addEventListener('click', loadList);
 document.getElementById('btnStat').addEventListener('click', loadStats);
 
-function init() {
+async function init() {
   const me = requireLogin('list.html');
   if (!me) return;
   currentUser = me;
@@ -168,7 +168,6 @@ function init() {
   document.getElementById('userRole').textContent = ROLE_LABELS[me.role] || me.role;
   renderScopeHint();
   await loadList();
-  // 默认统计 30 天
   const d = new Date();
   document.getElementById('toDate').value = d.toISOString().slice(0, 10);
   d.setDate(d.getDate() - 30);

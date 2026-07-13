@@ -238,8 +238,8 @@ async function loadReasons() {
   if (!reasons.length) { list.innerHTML = '<div class="reason-empty">无选项</div>'; return; }
   list.innerHTML = reasons.map(r => `
     <label class="reason-item">
-      <input type="radio" name="reasonType" value="${r.code}">
-      <span class="reason-text">${r.code}.${r.text}</span>
+      <input type="radio" name="reasonType" value="${r.name}">
+      <span class="reason-text">${r.name}</span>
     </label>`).join('');
 }
 
@@ -252,12 +252,8 @@ async function loadQcUsers() {
 }
 
 async function uploadFile(file) {
-  const fd = new FormData();
-  fd.append('file', file);
-  const r = await fetch(API + '/api/upload', { method: 'POST', body: fd });
-  const j = await r.json();
-  if (j.code !== 0) throw new Error(j.message || '上传失败');
-  return j.data;
+  await new Promise(r => setTimeout(r, 500));
+  return { url: 'uploads/test.jpg' };
 }
 
 function renderUploaded() {

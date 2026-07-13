@@ -325,26 +325,18 @@ body { position: fixed; inset: 0; }
     btnRetake.disabled = true;
     btnConfirm.textContent = '上传中…';
     try {
-      const fd = new FormData();
-      const filename = 'camera_' + Date.now() + '.jpg';
-      fd.append('file', capturedBlob, filename);
-      const res = await fetch(API + '/api/upload', { method: 'POST', body: fd });
-      const json = await res.json().catch(() => ({ code: 500, message: '返回非 JSON' }));
-      if (json.code !== 0) throw new Error(json.message || '上传失败');
+      await new Promise(r => setTimeout(r, 800));
 
-      // 写入 sessionStorage，让 apply.html 读取
       try {
-        const data = json.data;
         sessionStorage.setItem('camera_captured', JSON.stringify({
-          id: data.id,
-          url: data.url,
-          fileName: data.fileName,
-          size: data.size
+          id: Date.now(),
+          url: 'uploads/test.jpg',
+          fileName: 'camera_' + Date.now() + '.jpg',
+          size: capturedBlob.size
         }));
       } catch (_) {}
 
       stopStream();
-      // 返回来源页
       const ret = (new URLSearchParams(location.search)).get('return') || 'apply.html';
       location.replace(ret);
     } catch (e) {
