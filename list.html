@@ -160,8 +160,8 @@ document.getElementById('btnLogout').addEventListener('click', async () => {
 document.getElementById('btnFilter').addEventListener('click', loadList);
 document.getElementById('btnStat').addEventListener('click', loadStats);
 
-async function init() {
-  const me = await requireLogin('list.html');
+function init() {
+  const me = requireLogin('list.html');
   if (!me) return;
   currentUser = me;
   document.getElementById('userName').textContent = me.realName;

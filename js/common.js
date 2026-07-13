@@ -55,18 +55,12 @@ async function request(url, opts) {
   return json.data;
 }
 
-// 需鉴权页面：未登录跳转到 login.html
-async function requireLogin(redirectTo) {
+function requireLogin(redirectTo) {
   const tk = getToken();
   if (!tk) { location.replace('login.html?return=' + encodeURIComponent(redirectTo || location.href)); return false; }
-  try {
-    const me = await request('/api/auth/me');
-    setCurrentUser(me);
-    return me;
-  } catch (e) {
-    location.replace('login.html?return=' + encodeURIComponent(redirectTo || location.href));
-    return false;
-  }
+  const me = getCurrentUser();
+  if (!me || !me.role) { location.replace('login.html?return=' + encodeURIComponent(redirectTo || location.href)); return false; }
+  return me;
 }
 
 function fmtDateTime(dt) {
