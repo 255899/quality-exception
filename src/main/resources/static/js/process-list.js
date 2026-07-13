@@ -24,10 +24,10 @@ async function renderList(container) {
   `).join('');
 }
 
-function goDetail(id) { location.href = '/detail.html?id=' + id; }
+function goDetail(id) { location.href = 'detail.html?id=' + id; }
 
 function openHandle(id) {
-  location.href = `/handle.html?step=${window.FLOW_CONFIG.step}&id=${id}`;
+  location.href = `handle.html?step=${window.FLOW_CONFIG.step}&id=${id}`;
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
