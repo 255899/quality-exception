@@ -112,7 +112,8 @@ async function request(url, opts) {
   if (url.startsWith('/api/exceptions/')) {
     const m = url.match(/\/api\/exceptions\/(\d+)/);
     if (m) {
-      return MOCK_DATA.exceptions.find(e => e.id == m[1]) || {};
+      const report = MOCK_DATA.exceptions.find(e => e.id == m[1]) || {};
+      return { report, flows: [] };
     }
     if (url.startsWith('/api/exceptions?')) {
       const params = new URLSearchParams(url.split('?')[1]);
